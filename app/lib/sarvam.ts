@@ -8,8 +8,6 @@ const client = new SarvamAIClient({
   apiSubscriptionKey: process.env.SARVAM_API_KEY!
 });
 
-const SARVAM_API_KEY = process.env.SARVAM_API_KEY;
-
 export async function speechToText(formData: FormData) {
   const audioFile = formData.get('file') as File;
   if (!audioFile) throw new Error("No audio file found in formData");
@@ -23,11 +21,11 @@ export async function speechToText(formData: FormData) {
   return response;
 }
 
-export async function textToSpeech(text: string) {
+export async function textToSpeech(text: string, targetLanguageCode: any = 'en-IN', speaker: any = 'shubh') {
   const response = await client.textToSpeech.convert({
     text: text,
-    target_language_code: 'mr-IN',
-    speaker: 'shubh',
+    target_language_code: targetLanguageCode,
+    speaker: speaker,
     model: 'bulbul:v3'
   });
   

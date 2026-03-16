@@ -1,10 +1,14 @@
 'use client';
 import { useState, useRef } from 'react';
+import axios from 'axios';
 import { speechToText, textToSpeech } from './lib/sarvam';
+import { SUPPORTED_LANGUAGES, SUPPORTED_SPEAKERS } from './lib/utils';
 
 export default function HealthAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState('Idle');
+  const [language, setLanguage] = useState('en-IN');
+  const [speaker, setSpeaker] = useState('shubh');
   const mediaRecorder = useRef<MediaRecorder | null>(null);
 
   const startRecording = async () => {
@@ -35,17 +39,12 @@ export default function HealthAssistant() {
 
       setStatus('Analyzing...');
       // 2. Analyze call (Groq)
-      const analyzeResponse = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: transcript, history: [] })
-      });
-      const analyzeData = await analyzeResponse.json();
-      const aiResponseText = analyzeData.response;
+      const analyzeResponse = await axios.post('/api/analyze', { text: transcript, history: [], language });
+      const aiResponseText = analyzeResponse.data.response;
 
       setStatus('Generating Audio...');
       // 3. TTS call (Sarvam)
-      const base64Audio = await textToSpeech(aiResponseText);
+      const base64Audio = await textToSpeech(aiResponseText, language, speaker);
 
       setStatus('Playing Audio...');
       // 4. Play Audio
@@ -77,9 +76,67 @@ export default function HealthAssistant() {
           AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300">Health</span> Agent
         </h1>
 
-        <p className="text-white/70 mb-10 text-lg leading-relaxed max-w-sm">
-          Tap the orb and ask me any health-related question.
+        <p className="text-white/70 mb-8 text-lg leading-relaxed max-w-sm">
+          Tap and ask me any health-related question.
         </p>
+
+        {/* Settings Selection */}
+        <div className="mb-10 w-full flex flex-col sm:flex-row gap-4 max-w-sm relative z-20">
+          <div className="relative w-full">
+            <label htmlFor="language-select" className="sr-only">
+              Target Language
+            </label>
+            <div className="relative">
+              <select
+                id="language-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 text-white font-medium text-sm rounded-xl focus:ring-purple-400 focus:border-purple-400 block px-4 py-3 pr-10 appearance-none backdrop-blur-md transition-all duration-300 hover:bg-white/15 outline-none"
+              >
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code} className="bg-indigo-900 text-white font-medium">
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white/70">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative w-full">
+            <label htmlFor="speaker-select" className="sr-only">
+              Speaker
+            </label>
+            <div className="relative">
+              <select
+                id="speaker-select"
+                value={speaker}
+                onChange={(e) => setSpeaker(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 text-white font-medium text-sm rounded-xl focus:ring-purple-400 focus:border-purple-400 block px-4 py-3 pr-10 appearance-none backdrop-blur-md transition-all duration-300 hover:bg-white/15 outline-none"
+              >
+                <optgroup label="Male" className="bg-indigo-900 text-white">
+                  {SUPPORTED_SPEAKERS.filter(s => s.gender === 'Male').map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Female" className="bg-indigo-900 text-white">
+                  {SUPPORTED_SPEAKERS.filter(s => s.gender === 'Female').map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white/70">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Record Button Container */}
         <div className="relative mb-12 flex items-center justify-center">
